@@ -355,3 +355,31 @@
 3.2.1 (20 Aug 2015)
 
   - Small bug fixes
+
+3.3.0 (16 Sep 2016)
+
+  - Minor core API additions like 'Result.getNumBits', raw bytes for Aztec
+  - Small changes for Java 9 compatibility
+  - BS 4.7.6 release with Android API 23 support
+  - TIFF support in online decoder
+  - Many small bug fixes, typo fixes and project build improvements
+
+3.3.1 (26 Oct 2017)
+
+  - Various fixes to Code 128, 39 encoding; DataMatrix decoding
+  - Improvements to speed and robustness of zxing.org decoder
+  - Java 9 support
+  - Various translation updates for Barcode Scanner
+  - Removed Google Glass, ZXing Test apps
+
+3.3.2 (31 Jan 2018)
+
+  - Add workaround for Gradle + Android build issues
+  - Minor DataMatrix bug fixes
+  - Improve WPA2 wi-fi configuration support in Barcode Scanner
+  - Various translation updates and minor improvements
+
+3.3.3 (30 May 2018)
+
+  - Minor fixes and improvements
+  - Java 9+ support

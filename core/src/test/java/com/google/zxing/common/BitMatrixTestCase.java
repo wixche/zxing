@@ -57,6 +57,34 @@ public final class BitMatrixTestCase extends Assert {
   }
 
   @Test
+  public void testEnclosing() {
+    BitMatrix matrix = new BitMatrix(5);
+    assertNull(matrix.getEnclosingRectangle());
+    matrix.setRegion(1, 1, 1, 1);
+    assertArrayEquals(new int[] { 1, 1, 1, 1 }, matrix.getEnclosingRectangle());
+    matrix.setRegion(1, 1, 3, 2);
+    assertArrayEquals(new int[] { 1, 1, 3, 2 }, matrix.getEnclosingRectangle());
+    matrix.setRegion(0, 0, 5, 5);
+    assertArrayEquals(new int[] { 0, 0, 5, 5 }, matrix.getEnclosingRectangle());
+  }
+
+  @Test
+  public void testOnBit() {
+    BitMatrix matrix = new BitMatrix(5);
+    assertNull(matrix.getTopLeftOnBit());
+    assertNull(matrix.getBottomRightOnBit());
+    matrix.setRegion(1, 1, 1, 1);
+    assertArrayEquals(new int[] { 1, 1 }, matrix.getTopLeftOnBit());
+    assertArrayEquals(new int[] { 1, 1 }, matrix.getBottomRightOnBit());
+    matrix.setRegion(1, 1, 3, 2);
+    assertArrayEquals(new int[] { 1, 1 }, matrix.getTopLeftOnBit());
+    assertArrayEquals(new int[] { 3, 2 }, matrix.getBottomRightOnBit());
+    matrix.setRegion(0, 0, 5, 5);
+    assertArrayEquals(new int[] { 0, 0 }, matrix.getTopLeftOnBit());
+    assertArrayEquals(new int[] { 4, 4 }, matrix.getBottomRightOnBit());
+  }
+
+  @Test
   public void testRectangularMatrix() {
     BitMatrix matrix = new BitMatrix(75, 20);
     assertEquals(75, matrix.getWidth());
@@ -224,16 +252,25 @@ public final class BitMatrixTestCase extends Assert {
     try {
       emptyMatrix.clone().xor(badMatrix);
       fail();
-    } catch(IllegalArgumentException ex) {
+    } catch (IllegalArgumentException ex) {
       // good
     }
 
     try {
       badMatrix.clone().xor(emptyMatrix);
       fail();
-    } catch(IllegalArgumentException ex) {
+    } catch (IllegalArgumentException ex) {
       // good
     }
+  }
+
+  public static String matrixToString(BitMatrix result) {
+    assertEquals(1, result.getHeight());
+    StringBuilder builder = new StringBuilder(result.getWidth());
+    for (int i = 0; i < result.getWidth(); i++) {
+      builder.append(result.get(i, 0) ? '1' : '0');
+    }
+    return builder.toString();
   }
 
   private static void testXOR(BitMatrix dataMatrix, BitMatrix flipMatrix, BitMatrix expectedMatrix) {

@@ -18,7 +18,7 @@
   <modelVersion>4.0.0</modelVersion>
   
   <artifactId>zxing.appspot.com</artifactId>
-  <version>3.2.2-SNAPSHOT</version>
+  <version>3.3.4-SNAPSHOT</version>
   <packaging>war</packaging>
 
   <dependencies>
@@ -33,11 +33,11 @@
   <parent>
     <groupId>com.google.zxing</groupId>
     <artifactId>zxing-parent</artifactId>
-    <version>3.2.2-SNAPSHOT</version>
+    <version>3.3.4-SNAPSHOT</version>
   </parent>
 
   <properties>
-    <gwt.version>2.7.0</gwt.version>
+    <gwt.version>2.8.2</gwt.version>
   </properties>
 
   <build>
@@ -63,5 +63,24 @@
 
   <name>ZXing Appspot-based encoder</name>
   <description>GWT-based encoder app hosted at zxing.appspot.com</description>
+
+  <profiles>
+    <profile>
+      <id>travis</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>gwt-maven-plugin</artifactId>
+            <version>${gwt.version}</version>
+            <configuration>
+              <!-- don't build in parallel on Travis -->
+              <localWorkers>1</localWorkers>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 
 </project>

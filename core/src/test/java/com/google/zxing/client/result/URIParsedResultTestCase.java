@@ -61,6 +61,7 @@ public final class URIParsedResultTestCase extends Assert {
     doTestNotUri("http://google.com?q=foo bar");
     doTestNotUri("12756.501");
     doTestNotUri("google.50");
+    doTestNotUri("foo.bar.bing.baz.foo.bar.bing.baz");
   }
 
   @Test
@@ -90,6 +91,12 @@ public final class URIParsedResultTestCase extends Assert {
     doTestIsPossiblyMalicious("https://evil@google.com:443", true);
     doTestIsPossiblyMalicious("http://google.com/foo@bar", false);
     doTestIsPossiblyMalicious("http://google.com/@@", false);
+  }
+
+  @Test
+  public void testMaliciousUnicode() {
+    doTestIsPossiblyMalicious("https://google.com\u2215.evil.com/stuff", true);
+    doTestIsPossiblyMalicious("\u202ehttps://dylankatz.com/moc.elgoog.www//:sptth", true);
   }
 
   @Test
@@ -123,9 +130,10 @@ public final class URIParsedResultTestCase extends Assert {
     assertEquals(text, result.getDisplayResult());
   }
 
-  private static void doTestIsPossiblyMalicious(String uri, boolean expected) {
-    URIParsedResult result = new URIParsedResult(uri, null);
-    assertEquals(expected, result.isPossiblyMaliciousURI());
+  private static void doTestIsPossiblyMalicious(String uri, boolean malicious) {
+    Result fakeResult = new Result(uri, null, null, BarcodeFormat.QR_CODE);
+    ParsedResult result = ResultParser.parseResult(fakeResult);
+    assertSame(malicious ? ParsedResultType.TEXT : ParsedResultType.URI, result.getType());
   }
 
 }

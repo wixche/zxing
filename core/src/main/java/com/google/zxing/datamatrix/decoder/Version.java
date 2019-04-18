@@ -48,7 +48,7 @@ public final class Version {
     this.dataRegionSizeRows = dataRegionSizeRows;
     this.dataRegionSizeColumns = dataRegionSizeColumns;
     this.ecBlocks = ecBlocks;
-    
+
     // Calculate the total number of codewords
     int total = 0;
     int ecCodewords = ecBlocks.getECCodewords();
@@ -66,23 +66,23 @@ public final class Version {
   public int getSymbolSizeRows() {
     return symbolSizeRows;
   }
-  
+
   public int getSymbolSizeColumns() {
     return symbolSizeColumns;
   }
-  
+
   public int getDataRegionSizeRows() {
     return dataRegionSizeRows;
   }
-  
+
   public int getDataRegionSizeColumns() {
     return dataRegionSizeColumns;
   }
-  
+
   public int getTotalCodewords() {
     return totalCodewords;
   }
-  
+
   ECBlocks getECBlocks() {
     return ecBlocks;
   }
@@ -105,7 +105,7 @@ public final class Version {
         return version;
       }
     }
-    
+
     throw FormatException.getFormatInstance();
   }
 
@@ -139,7 +139,7 @@ public final class Version {
   }
 
   /**
-   * <p>Encapsualtes the parameters for one error-correction block in one symbol version.
+   * <p>Encapsulates the parameters for one error-correction block in one symbol version.
    * This includes the number of data codewords, and the number of times a block with these
    * parameters is used consecutively in the Data Matrix code version's format.</p>
    */

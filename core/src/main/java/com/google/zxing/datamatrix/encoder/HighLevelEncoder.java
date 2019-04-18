@@ -25,7 +25,7 @@ import java.util.Arrays;
  * annex S.
  */
 public final class HighLevelEncoder {
-  
+
   /**
    * Padding character
    */
@@ -128,7 +128,7 @@ public final class HighLevelEncoder {
   private static char randomize253State(char ch, int codewordPosition) {
     int pseudoRandom = ((149 * codewordPosition) % 253) + 1;
     int tempVariable = ch + pseudoRandom;
-    return tempVariable <= 254 ? (char) tempVariable : (char) (tempVariable - 254);
+    return (char) (tempVariable <= 254 ? tempVariable : tempVariable - 254);
   }
 
   /**
@@ -154,12 +154,12 @@ public final class HighLevelEncoder {
    * @return the encoded message (the char values range from 0 to 255)
    */
   public static String encodeHighLevel(String msg,
-                                       SymbolShapeHint shape, 
-                                       Dimension minSize, 
+                                       SymbolShapeHint shape,
+                                       Dimension minSize,
                                        Dimension maxSize) {
     //the codewords 0..255 are encoded as Unicode characters
     Encoder[] encoders = {
-        new ASCIIEncoder(), new C40Encoder(), new TextEncoder(), 
+        new ASCIIEncoder(), new C40Encoder(), new TextEncoder(),
         new X12Encoder(), new EdifactEncoder(),  new Base256Encoder()
     };
 
@@ -188,10 +188,11 @@ public final class HighLevelEncoder {
     int len = context.getCodewordCount();
     context.updateSymbolInfo();
     int capacity = context.getSymbolInfo().getDataCapacity();
-    if (len < capacity) {
-      if (encodingMode != ASCII_ENCODATION && encodingMode != BASE256_ENCODATION) {
-        context.writeCodeword('\u00fe'); //Unlatch (254)
-      }
+    if (len < capacity &&
+        encodingMode != ASCII_ENCODATION &&
+        encodingMode != BASE256_ENCODATION &&
+        encodingMode != EDIFACT_ENCODATION) {
+      context.writeCodeword('\u00fe'); //Unlatch (254)
     }
     //Padding
     StringBuilder codewords = context.getCodewords();
@@ -251,12 +252,12 @@ public final class HighLevelEncoder {
 
       //step L
       if (isDigit(c)) {
-        charCounts[ASCII_ENCODATION] += 0.5;
+        charCounts[ASCII_ENCODATION] += 0.5f;
       } else if (isExtendedASCII(c)) {
-        charCounts[ASCII_ENCODATION] = (int) Math.ceil(charCounts[ASCII_ENCODATION]);
-        charCounts[ASCII_ENCODATION] += 2;
+        charCounts[ASCII_ENCODATION] = (float) Math.ceil(charCounts[ASCII_ENCODATION]);
+        charCounts[ASCII_ENCODATION] += 2.0f;
       } else {
-        charCounts[ASCII_ENCODATION] = (int) Math.ceil(charCounts[ASCII_ENCODATION]);
+        charCounts[ASCII_ENCODATION] = (float) Math.ceil(charCounts[ASCII_ENCODATION]);
         charCounts[ASCII_ENCODATION]++;
       }
 
@@ -298,7 +299,7 @@ public final class HighLevelEncoder {
 
       // step Q
       if (isSpecialB256(c)) {
-        charCounts[BASE256_ENCODATION] += 4;
+        charCounts[BASE256_ENCODATION] += 4.0f;
       } else {
         charCounts[BASE256_ENCODATION]++;
       }

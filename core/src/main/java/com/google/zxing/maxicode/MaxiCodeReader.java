@@ -43,12 +43,6 @@ public final class MaxiCodeReader implements Reader {
 
   private final Decoder decoder = new Decoder();
 
-  /*
-  Decoder getDecoder() {
-    return decoder;
-  }
-   */
-
   /**
    * Locates and decodes a MaxiCode in an image.
    *
@@ -65,16 +59,11 @@ public final class MaxiCodeReader implements Reader {
   @Override
   public Result decode(BinaryBitmap image, Map<DecodeHintType,?> hints)
       throws NotFoundException, ChecksumException, FormatException {
-    DecoderResult decoderResult;
-    if (hints != null && hints.containsKey(DecodeHintType.PURE_BARCODE)) {
-      BitMatrix bits = extractPureBits(image.getBlackMatrix());
-      decoderResult = decoder.decode(bits, hints);
-    } else {
-      throw NotFoundException.getNotFoundInstance();
-    }
-
-    ResultPoint[] points = NO_POINTS;
-    Result result = new Result(decoderResult.getText(), decoderResult.getRawBytes(), points, BarcodeFormat.MAXICODE);
+    // Note that MaxiCode reader effectively always assumes PURE_BARCODE mode
+    // and can't detect it in an image
+    BitMatrix bits = extractPureBits(image.getBlackMatrix());
+    DecoderResult decoderResult = decoder.decode(bits, hints);
+    Result result = new Result(decoderResult.getText(), decoderResult.getRawBytes(), NO_POINTS, BarcodeFormat.MAXICODE);
 
     String ecLevel = decoderResult.getECLevel();
     if (ecLevel != null) {
@@ -93,17 +82,14 @@ public final class MaxiCodeReader implements Reader {
    * which contains only an unrotated, unskewed, image of a code, with some white border
    * around it. This is a specialized method that works exceptionally fast in this special
    * case.
-   *
-   * @see com.google.zxing.datamatrix.DataMatrixReader#extractPureBits(BitMatrix)
-   * @see com.google.zxing.qrcode.QRCodeReader#extractPureBits(BitMatrix)
    */
   private static BitMatrix extractPureBits(BitMatrix image) throws NotFoundException {
-    
+
     int[] enclosingRectangle = image.getEnclosingRectangle();
     if (enclosingRectangle == null) {
       throw NotFoundException.getNotFoundInstance();
     }
-    
+
     int left = enclosingRectangle[0];
     int top = enclosingRectangle[1];
     int width = enclosingRectangle[2];

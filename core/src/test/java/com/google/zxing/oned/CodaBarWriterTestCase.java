@@ -19,6 +19,7 @@ package com.google.zxing.oned;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.WriterException;
 import com.google.zxing.common.BitMatrix;
+import com.google.zxing.common.BitMatrixTestCase;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -52,11 +53,7 @@ public final class CodaBarWriterTestCase extends Assert {
 
   private static void doTest(String input, CharSequence expected) throws WriterException {
     BitMatrix result = encode(input);
-    StringBuilder actual = new StringBuilder(result.getWidth());
-    for (int i = 0; i < result.getWidth(); i++) {
-      actual.append(result.get(i, 0) ? '1' : '0');
-    }
-    assertEquals(expected, actual.toString());
+    assertEquals(expected, BitMatrixTestCase.matrixToString(result));
   }
 
   private static BitMatrix encode(String input) throws WriterException {

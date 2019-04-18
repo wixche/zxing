@@ -92,11 +92,11 @@ public final class QRCodeMultiReader extends QRCodeReader implements MultipleBar
       return EMPTY_RESULT_ARRAY;
     } else {
       results = processStructuredAppend(results);
-      return results.toArray(new Result[results.size()]);
+      return results.toArray(EMPTY_RESULT_ARRAY);
     }
   }
 
-  private static List<Result> processStructuredAppend(List<Result> results) {
+  static List<Result> processStructuredAppend(List<Result> results) {
     boolean hasSA = false;
 
     // first, check, if there is at least on SA result in the list
@@ -114,9 +114,10 @@ public final class QRCodeMultiReader extends QRCodeReader implements MultipleBar
     List<Result> newResults = new ArrayList<>();
     List<Result> saResults = new ArrayList<>();
     for (Result result : results) {
-      newResults.add(result);
       if (result.getResultMetadata().containsKey(ResultMetadataType.STRUCTURED_APPEND_SEQUENCE)) {
         saResults.add(result);
+      } else {
+        newResults.add(result);
       }
     }
     // sort and concatenate the SA list items
@@ -166,15 +167,9 @@ public final class QRCodeMultiReader extends QRCodeReader implements MultipleBar
   private static final class SAComparator implements Comparator<Result>, Serializable {
     @Override
     public int compare(Result a, Result b) {
-      int aNumber = (int) (a.getResultMetadata().get(ResultMetadataType.STRUCTURED_APPEND_SEQUENCE));
-      int bNumber = (int) (b.getResultMetadata().get(ResultMetadataType.STRUCTURED_APPEND_SEQUENCE));
-      if (aNumber < bNumber) {
-        return -1;
-      }
-      if (aNumber > bNumber) {
-        return 1;
-      }
-      return 0;
+      int aNumber = (int) a.getResultMetadata().get(ResultMetadataType.STRUCTURED_APPEND_SEQUENCE);
+      int bNumber = (int) b.getResultMetadata().get(ResultMetadataType.STRUCTURED_APPEND_SEQUENCE);
+      return Integer.compare(aNumber, bNumber);
     }
   }
 

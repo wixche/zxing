@@ -18,7 +18,7 @@
   <modelVersion>4.0.0</modelVersion>
   
   <artifactId>zxingorg</artifactId>
-  <version>3.2.2-SNAPSHOT</version>
+  <version>3.3.4-SNAPSHOT</version>
   <packaging>war</packaging>
 
   <dependencies>
@@ -39,13 +39,31 @@
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
+      <version>26.0-android</version>
+    </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-test</artifactId>
+      <version>4.3.22.RELEASE</version> <!-- 5.x requires Java 8 -->
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>javax.servlet</groupId>
+      <artifactId>javax.servlet-api</artifactId>
+      <version>3.1.0</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 
   <parent>
     <groupId>com.google.zxing</groupId>
     <artifactId>zxing-parent</artifactId>
-    <version>3.2.2-SNAPSHOT</version>
+    <version>3.3.4-SNAPSHOT</version>
   </parent>
   
   <build>
@@ -53,18 +71,6 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-war-plugin</artifactId>
-        <configuration>
-          <warSourceDirectory>src/web</warSourceDirectory>
-          <failOnMissingWebXml>false</failOnMissingWebXml>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.eclipse.jetty</groupId>
-        <artifactId>jetty-maven-plugin</artifactId>
-        <version>9.3.5.v20151012</version>
-        <configuration>
-          <webAppSourceDirectory>src/web</webAppSourceDirectory>
-        </configuration>
       </plugin>
     </plugins>
   </build>

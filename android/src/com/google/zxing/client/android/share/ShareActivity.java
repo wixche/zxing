@@ -16,6 +16,7 @@
 
 package com.google.zxing.client.android.share;
 
+import android.os.Build;
 import android.provider.ContactsContract;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.client.android.Contents;
@@ -29,8 +30,6 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.BaseColumns;
-import android.provider.Browser;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.widget.TextView;
@@ -44,8 +43,6 @@ import com.google.zxing.client.android.clipboard.ClipboardInterface;
  */
 public final class ShareActivity extends Activity {
 
-  private static final String TAG = ShareActivity.class.getSimpleName();
-
   private static final int PICK_BOOKMARK = 0;
   private static final int PICK_CONTACT = 1;
   private static final int PICK_APP = 2;
@@ -56,7 +53,7 @@ public final class ShareActivity extends Activity {
     @Override
     public void onClick(View v) {
       Intent intent = new Intent(Intent.ACTION_PICK, ContactsContract.Contacts.CONTENT_URI);
-      intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
+      intent.addFlags(Intents.FLAG_NEW_DOC);
       startActivityForResult(intent, PICK_CONTACT);
     }
   };
@@ -65,7 +62,7 @@ public final class ShareActivity extends Activity {
     @Override
     public void onClick(View v) {
       Intent intent = new Intent(Intent.ACTION_PICK);
-      intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
+      intent.addFlags(Intents.FLAG_NEW_DOC);
       intent.setClassName(ShareActivity.this, BookmarkPickerActivity.class.getName());
       startActivityForResult(intent, PICK_BOOKMARK);
     }
@@ -75,7 +72,7 @@ public final class ShareActivity extends Activity {
     @Override
     public void onClick(View v) {
       Intent intent = new Intent(Intent.ACTION_PICK);
-      intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
+      intent.addFlags(Intents.FLAG_NEW_DOC);
       intent.setClassName(ShareActivity.this, AppPickerActivity.class.getName());
       startActivityForResult(intent, PICK_APP);
     }
@@ -97,7 +94,7 @@ public final class ShareActivity extends Activity {
     public boolean onKey(View view, int keyCode, KeyEvent event) {
       if (keyCode == KeyEvent.KEYCODE_ENTER && event.getAction() == KeyEvent.ACTION_DOWN) {
         String text = ((TextView) view).getText().toString();
-        if (text != null && !text.isEmpty()) {
+        if (!text.isEmpty()) {
           launchSearch(text);
         }
         return true;
@@ -108,7 +105,7 @@ public final class ShareActivity extends Activity {
 
   private void launchSearch(String text) {
     Intent intent = new Intent(Intents.Encode.ACTION);
-    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
+    intent.addFlags(Intents.FLAG_NEW_DOC);
     intent.putExtra(Intents.Encode.TYPE, Contents.Type.TEXT);
     intent.putExtra(Intents.Encode.DATA, text);
     intent.putExtra(Intents.Encode.FORMAT, BarcodeFormat.QR_CODE.toString());
@@ -121,7 +118,12 @@ public final class ShareActivity extends Activity {
     setContentView(R.layout.share);
 
     findViewById(R.id.share_contact_button).setOnClickListener(contactListener);
-    findViewById(R.id.share_bookmark_button).setOnClickListener(bookmarkListener);
+    if (Build.VERSION.SDK_INT >= 23) { // Marshmallow / 6.0
+      // Can't access bookmarks in 6.0+
+      findViewById(R.id.share_bookmark_button).setEnabled(false);
+    } else {
+      findViewById(R.id.share_bookmark_button).setOnClickListener(bookmarkListener);
+    }
     findViewById(R.id.share_app_button).setOnClickListener(appListener);
     clipboardButton = findViewById(R.id.share_clipboard_button);
     clipboardButton.setOnClickListener(clipboardListener);
@@ -140,7 +142,7 @@ public final class ShareActivity extends Activity {
       switch (requestCode) {
         case PICK_BOOKMARK:
         case PICK_APP:
-          showTextAsBarcode(intent.getStringExtra(Browser.BookmarkColumns.URL));
+          showTextAsBarcode(intent.getStringExtra("url")); // Browser.BookmarkColumns.URL
           break;
         case PICK_CONTACT:
           // Data field is content://contacts/people/984
@@ -151,12 +153,11 @@ public final class ShareActivity extends Activity {
   }
 
   private void showTextAsBarcode(String text) {
-    Log.i(TAG, "Showing text as barcode: " + text);
     if (text == null) {
       return; // Show error?
     }
     Intent intent = new Intent(Intents.Encode.ACTION);
-    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
+    intent.addFlags(Intents.FLAG_NEW_DOC);
     intent.putExtra(Intents.Encode.TYPE, Contents.Type.TEXT);
     intent.putExtra(Intents.Encode.DATA, text);
     intent.putExtra(Intents.Encode.FORMAT, BarcodeFormat.QR_CODE.toString());
@@ -170,38 +171,21 @@ public final class ShareActivity extends Activity {
    * @param contactUri A Uri of the form content://contacts/people/17
    */
   private void showContactAsBarcode(Uri contactUri) {
-    Log.i(TAG, "Showing contact URI as barcode: " + contactUri);
     if (contactUri == null) {
       return; // Show error?
     }
     ContentResolver resolver = getContentResolver();
 
-    Cursor cursor;
-    try {
-      // We're seeing about six reports a week of this exception although I don't understand why.
-      cursor = resolver.query(contactUri, null, null, null, null);
-    } catch (IllegalArgumentException ignored) {
-      return;
-    }
-    if (cursor == null) {
-      return;
-    }
-
     String id;
     String name;
     boolean hasPhone;
-    try {
-      if (!cursor.moveToFirst()) {
+    try (Cursor cursor = resolver.query(contactUri, null, null, null, null)) {
+      if (cursor == null || !cursor.moveToFirst()) {
         return;
       }
-
       id = cursor.getString(cursor.getColumnIndex(BaseColumns._ID));
       name = cursor.getString(cursor.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME));
       hasPhone = cursor.getInt(cursor.getColumnIndex(ContactsContract.Contacts.HAS_PHONE_NUMBER)) > 0;
-
-
-    } finally {
-      cursor.close();
     }
 
     // Don't require a name to be present, this contact might be just a phone number.
@@ -211,13 +195,12 @@ public final class ShareActivity extends Activity {
     }
 
     if (hasPhone) {
-      Cursor phonesCursor = resolver.query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
-                                           null,
-                                           ContactsContract.CommonDataKinds.Phone.CONTACT_ID + '=' + id,
-                                           null,
-                                           null);
-      if (phonesCursor != null) {
-        try {
+      try (Cursor phonesCursor = resolver.query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                                                null,
+                                                ContactsContract.CommonDataKinds.Phone.CONTACT_ID + '=' + id,
+                                                null,
+                                                null)) {
+        if (phonesCursor != null) {
           int foundPhone = 0;
           int phonesNumberColumn = phonesCursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER);
           int phoneTypeColumn = phonesCursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.TYPE);
@@ -230,38 +213,30 @@ public final class ShareActivity extends Activity {
             bundle.putInt(Contents.PHONE_TYPE_KEYS[foundPhone], type);
             foundPhone++;
           }
-        } finally {
-          phonesCursor.close();
         }
       }
     }
 
-    Cursor methodsCursor = resolver.query(ContactsContract.CommonDataKinds.StructuredPostal.CONTENT_URI,
-                                          null,
-                                          ContactsContract.CommonDataKinds.StructuredPostal.CONTACT_ID + '=' + id,
-                                          null,
-                                          null);
-    if (methodsCursor != null) {
-      try {
-        if (methodsCursor.moveToNext()) {
-          String data = methodsCursor.getString(
-              methodsCursor.getColumnIndex(ContactsContract.CommonDataKinds.StructuredPostal.FORMATTED_ADDRESS));
-          if (data != null && !data.isEmpty()) {
-            bundle.putString(ContactsContract.Intents.Insert.POSTAL, massageContactData(data));
-          }
+    try (Cursor methodsCursor = resolver.query(ContactsContract.CommonDataKinds.StructuredPostal.CONTENT_URI,
+                                               null,
+                                               ContactsContract.CommonDataKinds.StructuredPostal.CONTACT_ID + '=' + id,
+                                               null,
+                                               null)) {
+      if (methodsCursor != null && methodsCursor.moveToNext()) {
+        String data = methodsCursor.getString(
+            methodsCursor.getColumnIndex(ContactsContract.CommonDataKinds.StructuredPostal.FORMATTED_ADDRESS));
+        if (data != null && !data.isEmpty()) {
+          bundle.putString(ContactsContract.Intents.Insert.POSTAL, massageContactData(data));
         }
-      } finally {
-        methodsCursor.close();
       }
     }
 
-    Cursor emailCursor = resolver.query(ContactsContract.CommonDataKinds.Email.CONTENT_URI,
-                                        null,
-                                        ContactsContract.CommonDataKinds.Email.CONTACT_ID + '=' + id,
-                                        null,
-                                        null);
-    if (emailCursor != null) {
-      try {
+    try (Cursor emailCursor = resolver.query(ContactsContract.CommonDataKinds.Email.CONTENT_URI,
+                                             null,
+                                             ContactsContract.CommonDataKinds.Email.CONTACT_ID + '=' + id,
+                                             null,
+                                             null)) {
+      if (emailCursor != null) {
         int foundEmail = 0;
         int emailColumn = emailCursor.getColumnIndex(ContactsContract.CommonDataKinds.Email.DATA);
         while (emailCursor.moveToNext() && foundEmail < Contents.EMAIL_KEYS.length) {
@@ -271,18 +246,15 @@ public final class ShareActivity extends Activity {
           }
           foundEmail++;
         }
-      } finally {
-        emailCursor.close();
       }
     }
 
     Intent intent = new Intent(Intents.Encode.ACTION);
-    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
+    intent.addFlags(Intents.FLAG_NEW_DOC);
     intent.putExtra(Intents.Encode.TYPE, Contents.Type.CONTACT);
     intent.putExtra(Intents.Encode.DATA, bundle);
     intent.putExtra(Intents.Encode.FORMAT, BarcodeFormat.QR_CODE.toString());
 
-    Log.i(TAG, "Sending bundle for encoding: " + bundle);
     startActivity(intent);
   }
 

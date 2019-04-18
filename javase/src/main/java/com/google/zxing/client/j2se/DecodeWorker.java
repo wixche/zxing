@@ -34,6 +34,7 @@ import com.google.zxing.multi.MultipleBarcodeReader;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.io.StringWriter;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -92,8 +93,13 @@ final class DecodeWorker implements Callable<Integer> {
       inputFileName = inputPath.getFileName().toString();
     } else {
       outDir = Paths.get(".").toRealPath();
-      String[] pathElements = input.getPath().split("/");
-      inputFileName = pathElements[pathElements.length - 1];
+      String path = input.getPath();
+      if (path == null) {
+        inputFileName = "input";
+      } else {
+        String[] pathElements = path.split("/");
+        inputFileName = pathElements[pathElements.length - 1];
+      }
     }
 
     // Replace/add extension
@@ -149,21 +155,31 @@ final class DecodeWorker implements Callable<Integer> {
     if (config.brief) {
       System.out.println(uri + ": Success");
     } else {
+      StringWriter output = new StringWriter();
       for (Result result : results) {
         ParsedResult parsedResult = ResultParser.parseResult(result);
-        System.out.println(uri +
+        output.write(uri +
             " (format: " + result.getBarcodeFormat() +
             ", type: " + parsedResult.getType() + "):\n" +
             "Raw result:\n" +
             result.getText() + "\n" +
             "Parsed result:\n" +
-            parsedResult.getDisplayResult());
-        System.out.println("Found " + result.getResultPoints().length + " result points.");
-        for (int i = 0; i < result.getResultPoints().length; i++) {
-          ResultPoint rp = result.getResultPoints()[i];
-          System.out.println("  Point " + i + ": (" + rp.getX() + ',' + rp.getY() + ')');
+            parsedResult.getDisplayResult() + "\n");
+        ResultPoint[] resultPoints = result.getResultPoints();
+        int numResultPoints = resultPoints.length;
+        output.write("Found " + numResultPoints + " result points.\n");
+        for (int pointIndex = 0; pointIndex < numResultPoints; pointIndex++) {
+          ResultPoint rp = resultPoints[pointIndex];
+          if (rp != null) {
+            output.write("  Point " + pointIndex + ": (" + rp.getX() + ',' + rp.getY() + ')');
+            if (pointIndex != numResultPoints - 1) {
+              output.write('\n');
+            }
+          }
         }
+        output.write('\n');
       }
+      System.out.println(output);
     }
 
     return results;

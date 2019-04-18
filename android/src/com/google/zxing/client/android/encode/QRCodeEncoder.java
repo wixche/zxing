@@ -35,12 +35,12 @@ import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.ContactsContract;
-import android.telephony.PhoneNumberUtils;
 import android.util.Log;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -74,9 +74,9 @@ final class QRCodeEncoder {
     this.dimension = dimension;
     this.useVCard = useVCard;
     String action = intent.getAction();
-    if (action.equals(Intents.Encode.ACTION)) {
+    if (Intents.Encode.ACTION.equals(action)) {
       encodeContentsFromZXingIntent(intent);
-    } else if (action.equals(Intent.ACTION_SEND)) {
+    } else if (Intent.ACTION_SEND.equals(action)) {
       encodeContentsFromShareIntent(intent);
     }
   }
@@ -99,7 +99,7 @@ final class QRCodeEncoder {
 
   // It would be nice if the string encoding lived in the core ZXing library,
   // but we use platform specific code like PhoneNumberUtils, so it can't.
-  private boolean encodeContentsFromZXingIntent(Intent intent) {
+  private void encodeContentsFromZXingIntent(Intent intent) {
      // Default to QR_CODE if no format given.
     String formatString = intent.getStringExtra(Intents.Encode.FORMAT);
     format = null;
@@ -112,11 +112,10 @@ final class QRCodeEncoder {
     }
     if (format == null || format == BarcodeFormat.QR_CODE) {
       String type = intent.getStringExtra(Intents.Encode.TYPE);
-      if (type == null || type.isEmpty()) {
-        return false;
+      if (type != null && !type.isEmpty()) {
+        this.format = BarcodeFormat.QR_CODE;
+        encodeQRCodeContents(intent, type);
       }
-      this.format = BarcodeFormat.QR_CODE;
-      encodeQRCodeContents(intent, type);
     } else {
       String data = intent.getStringExtra(Intents.Encode.DATA);
       if (data != null && !data.isEmpty()) {
@@ -125,7 +124,6 @@ final class QRCodeEncoder {
         title = activity.getString(R.string.contents_text);
       }
     }
-    return contents != null && !contents.isEmpty();
   }
 
   // Handles send intents from multitude of Android applications
@@ -187,9 +185,7 @@ final class QRCodeEncoder {
     }
     byte[] vcard;
     String vcardString;
-    InputStream stream = null;
-    try {
-      stream = activity.getContentResolver().openInputStream(uri);
+    try (InputStream stream = activity.getContentResolver().openInputStream(uri)) {
       if (stream == null) {
         throw new WriterException("Can't open stream for " + uri);
       }
@@ -200,17 +196,9 @@ final class QRCodeEncoder {
         baos.write(buffer, 0, bytesRead);
       }
       vcard = baos.toByteArray();
-      vcardString = new String(vcard, 0, vcard.length, "UTF-8");
+      vcardString = new String(vcard, 0, vcard.length, StandardCharsets.UTF_8);
     } catch (IOException ioe) {
       throw new WriterException(ioe);
-    } finally {
-      if (stream != null) {
-        try {
-          stream.close();
-        } catch (IOException e) {
-          // continue
-        }
-      }
     }
     Log.d(TAG, "Encoding share intent content:");
     Log.d(TAG, vcardString);
@@ -249,7 +237,7 @@ final class QRCodeEncoder {
         String phoneData = ContactEncoder.trim(intent.getStringExtra(Intents.Encode.DATA));
         if (phoneData != null) {
           contents = "tel:" + phoneData;
-          displayContents = PhoneNumberUtils.formatNumber(phoneData);
+          displayContents = ContactEncoder.formatPhone(phoneData);
           title = activity.getString(R.string.contents_phone);
         }
         break;
@@ -258,7 +246,7 @@ final class QRCodeEncoder {
         String smsData = ContactEncoder.trim(intent.getStringExtra(Intents.Encode.DATA));
         if (smsData != null) {
           contents = "sms:" + smsData;
-          displayContents = PhoneNumberUtils.formatNumber(smsData);
+          displayContents = ContactEncoder.formatPhone(smsData);
           title = activity.getString(R.string.contents_sms);
         }
         break;
